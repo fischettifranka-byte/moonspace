@@ -86,7 +86,7 @@ async function loadChatMessages(){
       const sizeStr=f.size>1048576?(f.size/1048576).toFixed(1)+'MB':f.size>1024?(f.size/1024).toFixed(1)+'KB':f.size+'B';
       return `<div class="chat-msg ${isSent?'sent':'received'} chat-file"><div style="display:flex;align-items:center;gap:10px;padding:4px 0">${f.category==='image'?`<img src="${f.path}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0">`:`<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border-radius:8px;flex-shrink:0;font-size:22px">${icon}</div>`}<div style="flex:1;min-width:0"><div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div><div style="font-size:11px;opacity:.5;margin-top:2px">${sizeStr}</div></div><a href="/api/cloud/download/${f.id}" download style="padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.08);font-size:12px;text-decoration:none;flex-shrink:0">⬇️</a></div><div class="msg-time">${fmtTime2(m.time)}</div></div>`;
     }
-    return `<div class="chat-msg ${isSent?'sent':'received'}">${esc(m.content)}<div class="msg-time">${fmtTime2(m.time)}</div></div>`;
+    return `<div class="chat-msg ${isSent?'sent':'received'}">${esc(m.text)}<div class="msg-time">${fmtTime2(m.time)}</div></div>`;
   }).join('');
   msgs.scrollTop=msgs.scrollHeight;
 }
@@ -94,10 +94,10 @@ async function sendDM(){
   const input=document.getElementById('chatInput');
   if(!input||!input.value.trim()||!currentChatUser)return;
   const content=input.value.trim();input.value='';
-  const d=await api('/api/dm/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:currentChatUser,content})});
+  const d=await api('/api/dm/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:currentChatUser,text:content})});
   if(d.ok){
     const msgs=document.getElementById('chatMsgs');
-    msgs.innerHTML+=`<div class="chat-msg sent">${esc(content)}<div class="msg-time">${fmtTime2(d.message.time)}</div></div>`;
+    msgs.innerHTML+=`<div class="chat-msg sent">${esc(content)}<div class="msg-time">${fmtTime2(Date.now())}</div></div>`;
     msgs.scrollTop=msgs.scrollHeight;
   }else toast(d.msg||'发送失败');
 }
