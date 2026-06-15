@@ -63,7 +63,7 @@ async function showConversations(){
   if(!d.ok)return;
   const el=document.getElementById('convList');
   if(!d.conversations.length){el.innerHTML='<div class="empty-msg">还没有私信<br>去用户主页发一条吧 💬</div>';return}
-  el.innerHTML=d.conversations.map(c=>`<div class="conv-item" onclick="openChat('${c.other}')"><div class="conv-av">${c.avatar?`<img src="${c.avatar}">`:esc(c.nickname[0]||'?')}${c.unread?`<div class="conv-unread">${c.unread}</div>`:''}</div><div class="conv-info"><div class="conv-name">${esc(c.nickname)}</div><div class="conv-last">${esc(c.lastMessage)}</div></div><div class="conv-time">${fmtTime(c.lastTime)}</div></div>`).join('');
+  el.innerHTML=d.conversations.map(c=>`<div class="conv-item" onclick="openChat('${c.user}')"><div class="conv-av">${c.avatar?`<img src="${c.avatar}">`:esc(c.nickname[0]||'?')}${c.unread?`<div class="conv-unread">${c.unread}</div>`:''}</div><div class="conv-info"><div class="conv-name">${esc(c.nickname)}</div><div class="conv-last">${esc(c.lastMsg||'')}</div></div><div class="conv-time">${fmtTime(c.lastTime)}</div></div>`).join('');
 }
 function startDM(userId){openChat(userId)}
 async function openChat(userId){

@@ -745,10 +745,15 @@ app.get('/api/dm/conversations', (req, res) => {
   const myDms = ctx.db.dms.filter(m => m.from === req.session.user || m.to === req.session.user);
   const partners = new Set();
   myDms.forEach(m => { if (m.from !== req.session.user) partners.add(m.from); if (m.to !== req.session.user) partners.add(m.to); });
-  const convos = [...partners].map(uid => ({
-    user: uid, nickname: getUserName(ctx.db, uid), avatar: ctx.db.users[uid]?.avatar || '',
-    lastMsg: myDms.filter(m => (m.from === uid && m.to === req.session.user) || (m.to === uid && m.from === req.session.user)).slice(-1)[0]
-  }));
+  const convos = [...partners].map(uid => {
+    const msgs = myDms.filter(m => (m.from === uid && m.to === req.session.user) || (m.to === uid && m.from === req.session.user)).sort((a, b) => a.time - b.time);
+    const lastMsg = msgs.slice(-1)[0];
+    const unread = msgs.filter(m => m.from === uid && m.to === req.session.user && !m.read).length;
+    return {
+      user: uid, nickname: getUserName(ctx.db, uid), avatar: ctx.db.users[uid]?.avatar || '',
+      lastMsg: lastMsg?.text || '', lastTime: lastMsg?.time || 0, unread
+    };
+  });
   res.json({ ok: true, conversations: convos });
 });
 
@@ -777,9 +782,13 @@ app.post('/api/dm/send', (req, res) => {
 app.post('/api/dm/send-file', (req, res) => {
   const ctx = auth(req, res); if (!ctx) return;
   const { to, fileId } = req.body;
+  console.log('DM_SEND_FILE req.body:', JSON.stringify(req.body));
   if (!to || !fileId) return res.json({ ok: false, msg: '参数不完整' });
   if (!ctx.db.cloud || !ctx.db.cloud[req.session.user]) return res.json({ ok: false, msg: '云盘为空' });
-  const file = ctx.db.cloud[req.session.user].find(f => f.id == fileId);
+  const userCloud = ctx.db.cloud[req.session.user];
+  console.log('DM_SEND_FILE cloud ids:', userCloud.map(f => ({id: f.id, type: typeof f.id})));
+  console.log('DM_SEND_FILE looking for fileId:', fileId, 'type:', typeof fileId);
+  const file = userCloud.find(f => String(f.id) === String(fileId));
   if (!file) return res.json({ ok: false, msg: '文件不存在' });
   if (!Array.isArray(ctx.db.dms)) ctx.db.dms = [];
   ctx.db.dms.push({ id: Date.now(), from: req.session.user, to, text: `[文件] ${file.name}`, time: Date.now(), file: { name: file.name, path: file.path, size: file.size, category: file.category } });
@@ -1194,7 +1203,7 @@ app.get('/api/cloud/info', (req, res) => {
 app.post('/api/cloud/delete/:id', (req, res) => {
   const ctx = auth(req, res); if (!ctx) return;
   if (!ctx.db.cloud?.[req.session.user]) return res.json({ ok: false });
-  ctx.db.cloud[req.session.user] = ctx.db.cloud[req.session.user].filter(f => f.id != req.params.id);
+  ctx.db.cloud[req.session.user] = ctx.db.cloud[req.session.user].filter(f => String(f.id) !== String(req.params.id));
   saveDB(ctx.db);
   res.json({ ok: true });
 });
@@ -1202,7 +1211,7 @@ app.post('/api/cloud/delete/:id', (req, res) => {
 app.get('/api/cloud/download/:id', (req, res) => {
   const ctx = auth(req, res); if (!ctx) return;
   if (!ctx.db.cloud?.[req.session.user]) return res.json({ ok: false, msg: '云盘为空' });
-  const file = ctx.db.cloud[req.session.user].find(f => f.id == req.params.id);
+  const file = ctx.db.cloud[req.session.user].find(f => String(f.id) === String(req.params.id));
   if (!file) return res.json({ ok: false, msg: '文件不存在' });
   const filePath = path.join(__dirname, 'public', 'cloud', path.basename(file.path));
   if (!fs.existsSync(filePath)) return res.json({ ok: false, msg: '文件已过期或被删除' });
@@ -1213,7 +1222,10 @@ app.get('/api/cloud/download/:id', (req, res) => {
 app.post('/api/cloud/share/:id', (req, res) => {
   const ctx = auth(req, res); if (!ctx) return;
   if (!ctx.db.cloud?.[req.session.user]) return res.json({ ok: false, msg: '云盘为空' });
-  const file = ctx.db.cloud[req.session.user].find(f => f.id == req.params.id);
+  const userCloud = ctx.db.cloud[req.session.user];
+  console.log('CLOUD_SHARE cloud ids:', userCloud.map(f => ({id: f.id, type: typeof f.id})));
+  console.log('CLOUD_SHARE req.params.id:', req.params.id, 'type:', typeof req.params.id);
+  const file = userCloud.find(f => String(f.id) === String(req.params.id));
   if (!file) return res.json({ ok: false, msg: '文件不存在' });
   const shareKey = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   file.shareKey = shareKey;
@@ -1227,7 +1239,7 @@ app.post('/api/cloud/share/:id', (req, res) => {
 app.post('/api/cloud/unshare/:id', (req, res) => {
   const ctx = auth(req, res); if (!ctx) return;
   if (!ctx.db.cloud?.[req.session.user]) return res.json({ ok: false, msg: '云盘为空' });
-  const file = ctx.db.cloud[req.session.user].find(f => f.id == req.params.id);
+  const file = ctx.db.cloud[req.session.user].find(f => String(f.id) === String(req.params.id));
   if (!file) return res.json({ ok: false, msg: '文件不存在' });
   delete file.shareKey;
   delete file.sharePassword;
