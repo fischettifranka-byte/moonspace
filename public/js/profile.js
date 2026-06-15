@@ -19,7 +19,6 @@ async function doCheckin(){
     const ptsEls=document.querySelectorAll('.profile-stats .num');if(ptsEls[2])ptsEls[2].textContent=d.points;
     if(d.newAchievements)d.newAchievements.forEach(a=>showAchievementPopup(a));
   }else toast(d.msg)
-  });
 }
 async function setPassword(){const p=document.getElementById('newPass').value,p2=document.getElementById('newPass2').value;if(!p||p.length<6)return toast('密码至少6位');if(p!==p2)return toast('两次密码不一致');const d=await api("/api/set-password",{method:"POST",body:JSON.stringify({password:p})});if(d.ok){toast('密码设置成功 🔑');state.hasPassword=true;showPage('pageProfile');initProfile()}else toast(d.msg)}
 
@@ -98,7 +97,6 @@ async function settingsVerifyEmail(){
   const d=await api("/api/settings/verify-email",{method:"POST",body:JSON.stringify({code})});
   if(d.ok){toast('邮箱更换成功 ✅');state.email=d.newEmail;loadSettings()}
   else toast(d.msg)
-  });
 }
 
 async function settingsSendPwdCode(){
@@ -124,14 +122,13 @@ async function settingsChangePassword(hasPassword){
   const d=await api("/api/settings/change-password",{method:"POST",body:JSON.stringify(body)});
   if(d.ok){toast("密码修改成功 🔑");loadSettings()}
   else toast(d.msg)
-  });
 }
 
 async function settingsDeleteAccount(hasPassword){
   const msg=hasPassword?'请输入密码确认注销':'确定要注销账号吗？此操作不可恢复！';
   const password=hasPassword?prompt(msg):'';
   if(hasPassword&&!password)return;
-  showConfirm("⚠️ 注销账号","所有数据将被删除且无法恢复！","⚠️",()=>{
+  showConfirm("⚠️ 注销账号","所有数据将被删除且无法恢复！","⚠️",async()=>{
   const d=await api("/api/settings/delete-account",{method:"POST",body:JSON.stringify({password:password||undefined})});
   if(d.ok){toast('账号已注销');setTimeout(()=>location.reload(),1000)}
   else toast(d.msg)
@@ -260,7 +257,6 @@ async function confirmShare(){
     document.getElementById('shareLinkPw').textContent=d.hasPassword?'🔒 需要密码才能下载':'🌐 公开链接，任何人可下载';
     loadCloudFiles();
   }else toast(d.msg);
-  });
 }
 function copyShareUrl(){
   const url=document.getElementById('shareLinkInput').value;
@@ -282,6 +278,5 @@ async function unshareCloudFile(id){
   const d=await api("/api/cloud/unshare/"+id,{method:"POST"});
   if(d.ok){toast('已取消分享');loadCloudFiles()}
   else toast(d.msg);
-  });
 }
 
