@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>登录测试</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial;max-width:420px;margin:60px auto;padding:20px;background:#0c0e1a;color:#e0e0e0}
+h2{text-align:center;margin-bottom:24px;letter-spacing:4px}
+.tab{display:flex;gap:8px;margin-bottom:20px}
+.tab button{flex:1;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:12px;font-size:14px;cursor:pointer;background:rgba(255,255,255,.03);color:var(--text3);transition:.2s}
+.tab button.active{background:rgba(245,215,110,.15);color:#f5d76e;border-color:rgba(245,215,110,.3)}
+input{display:block;width:100%;padding:14px;margin:10px 0;border:1px solid rgba(255,255,255,.1);border-radius:12px;font-size:16px;background:rgba(255,255,255,.05);color:#fff;outline:none;transition:border .2s}
+input:focus{border-color:#f5d76e}
+.code-row{display:flex;gap:8px}
+.code-row input{flex:1}
+.code-row button{flex:none;width:120px;padding:14px 8px;font-size:13px}
+.hint{display:flex;align-items:center;gap:6px;margin:6px 0;font-size:12px;color:rgba(255,255,255,.3);cursor:pointer;user-select:none}
+.hint:hover{color:rgba(255,255,255,.5)}
+button.primary{width:100%;padding:14px;background:linear-gradient(135deg,#f5d76e,#d4b84a);border:none;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer;color:#1a1040;margin-top:8px;transition:opacity .2s}
+button.primary:disabled{opacity:.5;cursor:not-allowed}
+#msg{margin-top:14px;text-align:center;font-size:14px;padding:10px;border-radius:8px;min-height:40px}
+#msg.ok{color:#6bffb8;background:rgba(107,255,184,.1)}
+#msg.err{color:#ff6b6b;background:rgba(255,107,107,.1)}
+.preset{margin-top:20px;font-size:12px;color:rgba(255,255,255,.3);text-align:center;line-height:1.8}
+</style></head>
+<body>
+<h2>🌙 月光空间 登录</h2>
+
+<div class="tab">
+  <button class="active" onclick="switchMode('password')">🔑 密码登录</button>
+  <button onclick="switchMode('code')">📧 验证码登录</button>
+</div>
+
+<div id="passwordForm">
+  <input id="email" type="text" placeholder="邮箱" autocomplete="email">
+  <input id="pass" type="password" placeholder="密码" autocomplete="current-password">
+  <button class="primary" onclick="doLogin()">✦ 登 录 ✦</button>
+</div>
+
+<div id="codeForm" style="display:none">
+  <input id="email2" type="text" placeholder="邮箱" autocomplete="email">
+  <div class="code-row">
+    <input id="code" type="text" placeholder="验证码" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+    <button id="codeBtn" onclick="sendCode()">获取验证码</button>
+  </div>
+  <button class="primary" onclick="doLogin()">✦ 登 录 ✦</button>
+</div>
+
+<div id="msg"></div>
+<div class="preset">
+没有账号？输入邮箱+验证码即可自动注册。<br>
+预设: 1678524203@qq.com
+</div>
+
+<script>
+let loginMode='password';
+let countdown=0, ct=0;
+
+function switchMode(m){
+  loginMode=m;
+  document.querySelectorAll('.tab button').forEach((b,i)=>b.className=i===(m==='password'?0:1)?'active':'');
+  document.getElementById('passwordForm').style.display=m==='password'?'':'none';
+  document.getElementById('codeForm').style.display=m==='code'?'':'none';
+  clearMsg();
+}
+
+function clearMsg(){var m=document.getElementById('msg');m.textContent='';m.className=''}
+
+async function sendCode(){
+  var email=document.getElementById('email2').value.trim();
+  var msg=document.getElementById('msg');
+  if(!email){msg.className='err';msg.textContent='请输入邮箱';return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.className='err';msg.textContent='邮箱格式不对';return}
+  var btn=document.getElementById('codeBtn');
+  btn.disabled=true;
+  countdown=60;btn.textContent=countdown+'s';
+  ct=setInterval(()=>{
+    countdown--;
+    if(countdown>0)btn.textContent=countdown+'s';
+    else{clearInterval(ct);btn.disabled=false;btn.textContent='重新获取'}
+  },1000);
+  try{
+    var r=await fetch('/api/send-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    var d=await r.json();
+    if(d.ok&&d.code_test){msg.className='ok';msg.textContent='验证码: '+d.code_test}
+    else{msg.className='err';msg.textContent=d.msg||'发送失败'}
+  }catch(e){msg.className='err';msg.textContent='网络错误'}
+}
+
+async function doLogin(){
+  var msg=document.getElementById('msg');
+  if(loginMode==='password'){
+    var email=document.getElementById('email').value.trim();
+    var pass=document.getElementById('pass').value;
+    if(!email||!pass){msg.className='err';msg.textContent='请填写完整';return}
+    msg.className='';msg.textContent='登录中...';
+    try{
+      var r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
+      var d=await r.json();
+      if(d.ok){msg.className='ok';msg.textContent='登录成功！✅ 正在跳转...';clearInterval(ct);setTimeout(()=>location.href='/',500)}
+      else{msg.className='err';msg.textContent=d.msg||'登录失败'}
+    }catch(e){msg.className='err';msg.textContent='网络错误'}
+  }else{
+    var email=document.getElementById('email2').value.trim();
+    var code=document.getElementById('code').value.trim();
+    if(!email||!code){msg.className='err';msg.textContent='请填写完整';return}
+    msg.className='';msg.textContent='登录中...';
+    try{
+      var r=await fetch('/api/email-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,code:code})});
+      var d=await r.json();
+      if(d.ok){msg.className='ok';msg.textContent='登录成功！✅ 正在跳转...';clearInterval(ct);setTimeout(()=>location.href='/',500)}
+      else{msg.className='err';msg.textContent=d.msg||'登录失败'}
+    }catch(e){msg.className='err';msg.textContent='网络错误'}
+  }
+}
+
+// 回车登录
+document.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+</script>
+</body></html>

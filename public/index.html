@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#0c0e1a">
+<title>🌙 月光空间</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌙</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-wrap"></div>
+<div class="bg-overlay"></div>
+
+
+<!-- 登录 -->
+<div class="auth-page" id="authPage">
+  <div class="auth-box">
+    <span class="moon-icon">🌙</span>
+    <h1>月光空间</h1>
+    <p class="sub">✦ 你 的 私 人 星 空 ✦</p>
+    <div class="auth-tab" id="authTab">
+      <div class="active" onclick="switchAuth('login')">🔑 登录</div>
+      <div onclick="switchAuth('register')">📝 注册</div>
+    </div>
+    <div id="loginForm">
+      <input class="inp" id="loginEmail" placeholder="邮箱" type="email" inputmode="email">
+      <div id="loginPasswordWrap">
+        <input class="inp" id="loginPass" type="password" placeholder="密码">
+      </div>
+      <div class="link-btn" onclick="toggleLoginMode()">📧 用验证码登录</div>
+      <div id="loginCodeWrap" style="display:none">
+        <div class="inp-row">
+          <input class="inp" id="loginCode" placeholder="验证码" inputmode="numeric" maxlength="6">
+          <button class="code-btn" id="loginCodeBtn" onclick="sendLoginCode()">获取验证码</button>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer;font-size:13px;color:var(--text3)">
+        <input type="checkbox" id="rememberMe" checked style="width:16px;height:16px;accent-color:var(--gold)">
+        记住登录（7天免登录）
+      </label>
+      <button class="btn" onclick="doLogin()">✦ 登 录 ✦</button>
+      <div class="msg-auth" id="loginMsg"></div>
+    </div>
+    <div id="regForm" style="display:none">
+      <input class="inp" id="regEmail" placeholder="邮箱" type="email" inputmode="email">
+      <div class="inp-row">
+        <input class="inp" id="regCode" placeholder="邮箱验证码" inputmode="numeric" maxlength="6">
+        <button class="code-btn" id="regCodeBtn" onclick="sendRegCode()">获取验证码</button>
+      </div>
+      <input class="inp" id="regNick" placeholder="昵称（选填）">
+      <input class="inp" id="regPass" type="password" placeholder="密码（至少6位）">
+      <input class="inp" id="regPass2" type="password" placeholder="确认密码">
+      <button class="btn" onclick="doRegister()">✦ 注 册 ✦</button>
+      <div class="msg-auth" id="regMsg"></div>
+    </div>
+  </div>
+</div>
+
+<div id="app" style="display:none;height:100dvh">
+  <!-- 桌面右侧挂件栏 -->
+  <div class="desk-sidebar" id="deskSidebar">
+    <div class="ds-card" id="dsWeather"></div>
+    <div class="ds-card" id="dsMiniPlayer" style="display:none">
+      <div class="ds-title">🎵 正在播放</div>
+      <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openExPlayer()">
+        <img id="dsCover" src="" style="width:48px;height:48px;border-radius:10px;object-fit:cover;background:rgba(255,255,255,.05)">
+        <div style="flex:1;min-width:0">
+          <div id="dsName" style="font-size:13px;font-weight:600;color:var(--text)">未播放</div>
+          <div id="dsArtist" style="font-size:11px;color:var(--text3);margin-top:2px">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="ds-card" id="dsTrending">
+      <div class="ds-title">🔥 热榜</div>
+      <div id="dsTrendingContent" style="font-size:12px;color:var(--text3)">加载中...</div>
+    </div>
+    <div class="ds-card" id="dsCheckin" style="display:none">
+      <div class="ds-title">✅ 签到</div>
+      <div id="dsCheckinContent"></div>
+    </div>
+    <div class="ds-footer">🌙 月光空间 v4</div>
+  </div>
+  <!-- 主页 -->
+  <div class="page active" id="pageHome">
+    <div class="top-bar">
+      <div class="title"><span>✦</span> 月光空间</div>
+      <div class="actions">
+        <button class="badge" id="notifBadge" onclick="switchTab('Notif')">🔔</button>
+      </div>
+    </div>
+    <!-- 天气卡片 -->
+    <div class="weather-card" id="weatherCard" style="display:none"></div>
+    <!-- Stories -->
+    <div id="storiesContainer"></div>
+    <div class="post-box">
+      <textarea id="postContent" placeholder="在想什么？写下来吧 ✨  用#话题#创建话题" maxlength="2000"></textarea>
+      <div class="tools">
+        <label onclick="document.getElementById('imgInput').click()">📷 图片</label>
+        <input type="file" id="imgInput" accept="image/*" multiple onchange="previewImgs(this)">
+        <input type="text" id="postMood" placeholder="💭 心情" maxlength="15">
+        <input type="text" id="postLoc" placeholder="📍 位置" maxlength="20">
+        <span id="postVisToggle" class="vis-toggle public" onclick="toggleVisibility()" title="点击切换可见范围">🌍 公开</span>
+        <input type="hidden" id="postVis" value="public">
+        <button class="post-btn" onclick="submitPost()">✦ 发表</button>
+      </div>
+      <div class="preview-imgs" id="previewBox"></div>
+    </div>
+    <div id="feed"></div>
+    <div class="loading" id="feedLoading" style="display:none">加载中</div>
+  </div>
+
+  <!-- 音乐 -->
+  <div class="page" id="pageMusic">
+    <div class="top-bar"><div class="title">🎵 <span>音乐</span></div><div class="actions" style="display:flex;gap:8px;align-items:center"><select id="musicSource" onchange="switchMusicSource()" style="padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text2);font-size:12px;outline:none;font-family:inherit"><option value="netease">☁️ 网易云</option><option value="free">🆓 免费模式</option></select><select id="musicQuality" onchange="switchMusicQuality()" style="padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text2);font-size:12px;outline:none;font-family:inherit"><option value="standard">标准</option><option value="higher">较高</option><option value="exhigh">极高</option><option value="lossless">无损</option><option value="hires">Hi-Res</option></select></div></div>
+    <div class="music-search">
+      <input id="musicSearchInput" placeholder="搜索歌曲、歌手..." onkeydown="if(event.key==='Enter')searchMusic()">
+      <button onclick="searchMusic()">搜索</button>
+    </div>
+    <div class="music-tabs">
+      <button class="music-tab active" onclick="switchMusicTab('discover')">发现</button>
+      <button class="music-tab" onclick="switchMusicTab('search')">搜索</button>
+      <button class="music-tab" onclick="switchMusicTab('favorites')">收藏</button>
+    </div>
+    <div id="musicContent"></div>
+  </div>
+
+  <!-- 留言板 -->
+  <div class="page" id="pageBoard">
+    <div class="top-bar"><div class="title">📝 <span>留言板</span></div></div>
+    <div class="post-box" style="margin:8px 12px">
+      <textarea id="boardContent" placeholder="在留言板上写点什么吧 🌟" maxlength="500"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="post-btn" onclick="submitBoard()">✦ 留言</button>
+      </div>
+    </div>
+    <div id="boardFeed"></div>
+    <div class="loading" id="boardLoading" style="display:none">加载中</div>
+  </div>
+
+  <!-- 广场 -->
+  <div class="page" id="pageSquare">
+    <div class="top-bar"><div class="title">🔥 <span>广场</span></div></div>
+    <div class="square-sort" id="squareSort">
+      <button class="active" onclick="switchSquareSort('hot')">🔥 最热</button>
+      <button onclick="switchSquareSort('new')">🕐 最新</button>
+    </div>
+    <div id="trendingBar"></div>
+    <div id="squareFeed"></div>
+    <div class="loading" id="squareLoading" style="display:none">加载中</div>
+  </div>
+
+  <!-- 消息 -->
+  <div class="page" id="pageNotif">
+    <div class="top-bar"><div class="title">🔔 <span>消息</span></div><div class="actions"><button onclick="markAllRead()">全部已读</button></div></div>
+    <div class="menu-grid">
+      <div class="menu-item" onclick="showSecretForm()"><span class="mi-icon">💌</span>悄悄话</div>
+      <div class="menu-item" onclick="showMyMessages()"><span class="mi-icon">📩</span>信件</div>
+      <div class="menu-item" onclick="showConversations()"><span class="mi-icon">💬</span>私信</div>
+      <div class="menu-item" onclick="switchTab('Board')"><span class="mi-icon">📝</span>留言</div>
+    </div>
+    <div id="notifList"></div>
+  </div>
+
+  <!-- 我的 -->
+  <div class="page" id="pageProfile">
+    <div class="top-bar"><div class="title">👤 <span>我的</span></div></div>
+    <div id="profileContent"></div>
+  </div>
+
+  <!-- 用户主页 -->
+  <div class="page" id="pageUser">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">用户<span>主页</span></div><div></div></div>
+    <div id="userContent"></div>
+  </div>
+
+  <!-- 悄悄话 -->
+  <div class="page" id="pageSecret">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">💌 <span>悄悄话</span></div><div></div></div>
+    <div class="secret-form">
+      <input class="inp" id="secretTo" placeholder="收件人邮箱" style="margin-bottom:12px">
+      <textarea id="secretContent" placeholder="写下你想说的话..."></textarea>
+      <div class="secret-options"><label><input type="checkbox" id="secretAnon"> 🎭 匿名发送</label></div>
+      <button class="btn" style="margin-top:16px" onclick="sendSecret()">💌 发送</button>
+    </div>
+  </div>
+
+  <!-- 信件 -->
+  <div class="page" id="pageMessages">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">📩 <span>信件</span></div><div></div></div>
+    <div class="music-tabs">
+      <button class="music-tab active" onclick="switchMsgTab('received')">收到的</button>
+      <button class="music-tab" onclick="switchMsgTab('sent')">发出的</button>
+    </div>
+    <div id="messagesContent"></div>
+  </div>
+
+  <!-- 私信会话列表 -->
+  <div class="page" id="pageConversations">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">💬 <span>私信</span></div><div></div></div>
+    <div id="convList"></div>
+  </div>
+
+  <!-- 私信聊天 -->
+  <div class="page" id="pageChat">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title" id="chatTitle">💬 <span>聊天</span></div><div></div></div>
+    <div class="chat-view" id="chatView"></div>
+  </div>
+
+  <!-- Stories 发布 -->
+  <div class="page" id="pageStoryCreate">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">📸 <span>发布Story</span></div><div></div></div>
+    <div class="story-create">
+      <textarea id="storyText" placeholder="写点什么分享今天的心情..." maxlength="200"></textarea>
+      <div class="sc-tools">
+        <label onclick="document.getElementById('storyImgInput').click()">📷 添加图片</label>
+        <input type="file" id="storyImgInput" accept="image/*" onchange="previewStoryImg(this)" style="display:none">
+        <button class="sc-btn" onclick="submitStory()">✨ 发布</button>
+      </div>
+      <div class="sc-preview" id="storyPreview"></div>
+    </div>
+  </div>
+
+  <!-- 成就 -->
+  <div class="page" id="pageAchievements">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">🎯 <span>成就</span></div><div></div></div>
+    <div id="achContent"></div>
+  </div>
+
+  <!-- 年度报告 -->
+  <div class="page" id="pageReport">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">📊 <span>年度报告</span></div><div></div></div>
+    <div id="reportContent"></div>
+  </div>
+
+  <!-- 照片墙 -->
+  <div class="page" id="pageGallery">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">📸 <span>照片墙</span></div><div></div></div>
+    <div id="galleryContent"></div>
+  </div>
+
+  <!-- 排行榜 -->
+  <div class="page" id="pageLeaderboard">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">🏆 <span>排行榜</span></div><div></div></div>
+    <div class="music-tabs">
+      <button class="music-tab active" onclick="switchLBTab('points')">积分</button>
+      <button class="music-tab" onclick="switchLBTab('posts')">活跃</button>
+      <button class="music-tab" onclick="switchLBTab('streak')">签到</button>
+    </div>
+    <div id="lbContent"></div>
+  </div>
+
+  <!-- 设置密码 -->
+  <div class="page" id="pageSetPassword">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">🔑 <span>设置密码</span></div><div></div></div>
+    <div class="card" style="margin-top:20px">
+      <p style="color:var(--text2);font-size:13px;margin-bottom:16px;line-height:1.8">你还没有设置密码，设置密码后可以直接用邮箱+密码登录，无需验证码。</p>
+      <input class="inp" id="newPass" type="password" placeholder="新密码（至少6位）">
+      <input class="inp" id="newPass2" type="password" placeholder="确认密码">
+      <button class="btn" onclick="setPassword()">✦ 确认设置</button>
+    </div>
+  </div>
+
+  <!-- 用户设置 -->
+  <div class="page" id="pageSettings">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">⚙️ <span>账号设置</span></div><div></div></div>
+    <div id="settingsContent"></div>
+  </div>
+
+  <!-- 云盘 -->
+  <div class="page" id="pageCloud">
+    <div class="top-bar"><div class="actions"><button onclick="goBack()">← 返回</button></div><div class="title">☁️ <span>我的云盘</span></div><div></div></div>
+    <div id="cloudContent"></div>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="tab-bar" id="tabBar" style="display:none">
+    <button class="tab-item active" onclick="switchTab('Home')" data-tab="Home"><span class="icon">🏠</span>主页</button>
+    <button class="tab-item" onclick="switchTab('Square')" data-tab="Square"><span class="icon">🔥</span>广场</button>
+    <button class="tab-item" onclick="switchTab('Music')" data-tab="Music"><span class="icon">🎵</span>音乐</button>
+    <button class="tab-item" onclick="switchTab('Notif')" data-tab="Notif"><span class="icon">🔔</span>消息</button>
+    <button class="tab-item" onclick="switchTab('Profile')" data-tab="Profile"><span class="icon">👤</span>我的</button>
+  </div>
+
+  <!-- 播放器 -->
+  <!-- 悬浮小球 -->
+  <div class="float-player" id="floatPlayer" onclick="openExPlayer()">
+    <img id="fpMiniCover" src="">
+    <div class="fp-mini-play" id="fpMiniPlay">▶</div>
+  </div>
+
+  <!-- 悬浮面板遮罩 -->
+  <div class="ex-player-overlay" id="exPlayerOverlay" onclick="closeExPlayer()"></div>
+
+  <!-- 可展开悬浮播放面板 -->
+  <div class="ex-player collapsed" id="exPlayer">
+    <div class="ex-handle" id="exHandle">
+      <div class="ex-handle-bar"></div>
+    </div>
+    <div class="ex-compact">
+      <img class="ex-cover" id="exCover" src="">
+      <div class="ex-info">
+        <div class="ex-name" id="exName">未播放</div>
+        <div class="ex-artist" id="exArtist"></div>
+      </div>
+      <div class="ex-btns">
+        <button onclick="playPrev()">⏮</button>
+        <button class="ex-play-btn" id="exPlayBtn" onclick="togglePlay()">▶</button>
+        <button onclick="playNext()">⏭</button>
+      </div>
+      <button class="ex-expand-btn" id="exExpandBtn" onclick="toggleExExpand()">▲</button>
+    </div>
+    <div class="ex-progress">
+      <span class="ex-time" id="exTimeNow">0:00</span>
+      <input type="range" id="exRange" min="0" max="100" value="0" oninput="seekTo(this.value)">
+      <span class="ex-time" id="exTimeTotal">0:00</span>
+    </div>
+    <div class="ex-body" id="exBody">
+      <div class="ex-search-row" id="exSearchRow" style="display:none">
+        <input id="exSearchInput" placeholder="搜索歌曲、歌手..." onkeydown="if(event.key==='Enter')exSearch()">
+        <button onclick="exSearch()">搜索</button>
+      </div>
+      <div class="ex-tabs" id="exTabs">
+        <button class="ex-tab active" data-tab="playlist" onclick="switchExTab('playlist')">📋 歌单</button>
+        <button class="ex-tab" data-tab="history" onclick="switchExTab('history')">🕐 历史</button>
+        <button class="ex-tab" data-tab="favorites" onclick="switchExTab('favorites')">❤️ 收藏</button>
+        <button class="ex-tab" data-tab="search" onclick="switchExTab('search')">🔍 搜索</button>
+      </div>
+      <div class="ex-list" id="exList"></div>
+    </div>
+  </div>
+
+  <!-- 全屏播放器 -->
+  <div class="full-player" id="fullPlayer">
+    <button class="fp-close" onclick="closeFullPlayer()">✕</button>
+    <button class="fp-fav" id="fpFav" onclick="favCurrent()">🤍</button>
+    <img class="fp-cover" id="fpCover" src="">
+    <div class="fp-info"><div class="fp-name" id="fpName">未播放</div><div class="fp-artist" id="fpArtist"></div></div>
+    <div class="fp-progress">
+      <span class="fp-time" id="fpTimeNow">0:00</span>
+      <input type="range" id="fpRange" min="0" max="100" value="0" oninput="seekTo(this.value)">
+      <span class="fp-time" id="fpTimeTotal">0:00</span>
+    </div>
+    <div class="fp-btns">
+      <button onclick="playPrev()">⏮</button>
+      <button class="fp-play-btn" id="fpPlayBtn" onclick="togglePlay()">▶</button>
+      <button onclick="playNext()">⏭</button>
+    </div>
+    <div class="fp-lyric" id="fpLyric"></div>
+  </div>
+
+  <!-- Story Viewer -->
+  <div class="story-viewer" id="storyViewer">
+    <div class="sv-progress" id="svProgress"></div>
+    <div class="sv-top">
+      <div class="sv-av" id="svAv"></div>
+      <div><div class="sv-name" id="svName"></div><div class="sv-time" id="svTime"></div></div>
+    </div>
+    <button class="sv-close" onclick="closeStoryViewer()">✕</button>
+    <div class="sv-nav">
+      <div onclick="prevStoryItem()"></div>
+      <div onclick="nextStoryItem()"></div>
+    </div>
+    <div class="sv-img" id="svImg"></div>
+    <div class="sv-text" id="svText"></div>
+  </div>
+
+  <audio id="audioPlayer" ontimeupdate="onTimeUpdate()" onended="playNext()" onloadedmetadata="onMetadata()"></audio>
+</div>
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/feed.js"></script>
+  <script src="js/music.js"></script>
+  <script src="js/social.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/extra.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/main.js"></script>
+
+<!-- 分享弹窗 -->
+<div id="shareModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center" onclick="if(event.target===this)closeShareModal()">
+  <div style="width:90%;max-width:340px;background:linear-gradient(135deg,#1a1040,#0c0e1a);border:1px solid rgba(245,215,110,.15);border-radius:24px;padding:28px 22px;animation:slideUp .3s cubic-bezier(.16,1,.3,1)">
+    <!-- 第一步：设置 -->
+    <div id="shareStep1">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:40px;margin-bottom:8px">🔗</div>
+        <div style="font-size:17px;font-weight:700;color:#fff">分享文件</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">生成链接分享给好友</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(255,255,255,.04);border-radius:14px;margin-bottom:14px">
+        <div>
+          <div style="font-size:14px;color:#e8e8e8">🔒 设置密码</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">开启后需密码才能下载</div>
+        </div>
+        <label style="position:relative;width:48px;height:28px;cursor:pointer" onclick="event.stopPropagation()">
+          <input type="checkbox" id="sharePwToggle" onchange="toggleSharePw()" style="position:absolute;opacity:0;width:100%;height:100%;z-index:1;cursor:pointer">
+          <div id="shareToggleTrack" style="position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:14px;transition:all .3s"></div>
+          <div id="shareToggleDot" style="position:absolute;top:3px;left:3px;width:22px;height:22px;background:#666;border-radius:50%;transition:all .3s"></div>
+        </label>
+      </div>
+      <div id="sharePwArea" style="display:none;margin-bottom:16px">
+        <input class="inp" id="sharePwInput" type="text" placeholder="设置分享密码" maxlength="32" style="margin-bottom:0;text-align:center;letter-spacing:2px">
+      </div>
+      <button class="btn" onclick="confirmShare()" style="margin-bottom:10px">✦ 生成分享链接</button>
+      <button onclick="closeShareModal()" style="width:100%;padding:12px;border-radius:50px;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--text3);font-size:14px;cursor:pointer;font-family:inherit">取消</button>
+    </div>
+    <!-- 第二步：显示链接 -->
+    <div id="shareStep2" style="display:none">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:40px;margin-bottom:8px">✅</div>
+        <div style="font-size:17px;font-weight:700;color:#fff">分享链接已生成</div>
+        <div id="shareLinkPw" style="font-size:12px;color:var(--text3);margin-top:4px"></div>
+      </div>
+      <div style="padding:14px;background:rgba(255,255,255,.04);border-radius:14px;margin-bottom:16px">
+        <input class="inp" id="shareLinkInput" readonly style="margin-bottom:0;text-align:center;font-size:13px;letter-spacing:1px;cursor:text">
+      </div>
+      <button class="btn" onclick="copyShareUrl()" style="margin-bottom:10px">📋 复制链接</button>
+      <button onclick="closeShareModal()" style="width:100%;padding:12px;border-radius:50px;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--text3);font-size:14px;cursor:pointer;font-family:inherit">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- 文件选择器 -->
+<div id="filePickerModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center" onclick="if(event.target===this)closeFilePicker()">
+  <div style="width:90%;max-width:360px;max-height:70dvh;background:linear-gradient(135deg,#1a1040,#0c0e1a);border:1px solid rgba(245,215,110,.15);border-radius:24px;overflow:hidden;display:flex;flex-direction:column;animation:slideUp .3s cubic-bezier(.16,1,.3,1)">
+    <div style="padding:18px;text-align:center;border-bottom:1px solid rgba(255,255,255,.04)">
+      <div style="font-size:16px;font-weight:700;color:#fff">📎 选择文件</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">从云盘选择文件发送</div>
+    </div>
+    <div id="filePickerList" style="overflow-y:auto;flex:1"></div>
+    <div style="padding:12px;border-top:1px solid rgba(255,255,255,.04)">
+      <button onclick="closeFilePicker()" style="width:100%;padding:12px;border-radius:50px;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--text3);font-size:14px;cursor:pointer;font-family:inherit">取消</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
