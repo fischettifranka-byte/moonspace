@@ -928,25 +928,58 @@ app.get('/api/achievements', (req, res) => {
 app.get('/api/report/yearly', (req, res) => {
   const ctx = auth(req, res); if (!ctx) return;
   const myPosts = ctx.db.posts.filter(p => p.user === req.session.user);
-  const yearPosts = myPosts.filter(p => {
-    const d = new Date(p.time); return d.getFullYear() === new Date().getFullYear();
-  });
+  const curYear = new Date().getFullYear();
+  const yearPosts = myPosts.filter(p => new Date(p.time).getFullYear() === curYear);
+  // 月度统计
+  const monthlyPosts = Array(12).fill(0);
+  yearPosts.forEach(p => { monthlyPosts[new Date(p.time).getMonth()]++; });
+  // 评论数
+  const totalComments = myPosts.reduce((a, p) => a + (p.comments?.length || 0), 0);
+  // 粉丝
+  const followers = Object.values(ctx.db.users).filter(v => v.following?.includes(req.session.user)).length;
+  // 签到天数（当前数据模型只存最近一次，用 streak 近似）
+  let checkinDays = 0;
+  if (ctx.db.checkins) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (ctx.db.checkins[req.session.user] === today) {
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+        if (ctx.db.checkins[req.session.user] === d) checkinDays++;
+        else break;
+      }
+    }
+  }
+  // 最常心情
+  const moodCounts = {};
+  myPosts.forEach(p => { if (p.mood) { moodCounts[p.mood] = (moodCounts[p.mood] || 0) + 1; } });
+  const topMoodEntry = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0];
+  // 等级
+  const level = Math.floor((ctx.userData.points || 0) / 100) + 1;
+  // 成就
+  const achievementChecks = [
+    myPosts.length >= 1, myPosts.length >= 10, myPosts.length >= 50,
+    myPosts.reduce((a, p) => a + (p.likes?.length || 0), 0) >= 10,
+    myPosts.reduce((a, p) => a + (p.likes?.length || 0), 0) >= 100,
+    (ctx.userData.points || 0) >= 50, (ctx.userData.points || 0) >= 500,
+    ctx.db.posts.filter(p => p.comments?.some(c => c.user === req.session.user)).length >= 20
+  ];
   res.json({
     ok: true,
+    year: curYear,
     totalPosts: myPosts.length,
-    yearPosts: yearPosts.length,
     totalLikes: myPosts.reduce((a, p) => a + (p.likes?.length || 0), 0),
-    mostActiveMonth: getMostActiveMonth(myPosts),
+    totalComments,
+    checkinDays,
+    followers,
+    musicCount: (ctx.userData.musicList || []).length,
+    achievementCount: achievementChecks.filter(Boolean).length,
+    topMood: topMoodEntry ? topMoodEntry[0] : '',
+    topMoodCount: topMoodEntry ? topMoodEntry[1] : 0,
+    monthlyPosts,
+    level,
     points: ctx.userData.points || 0
   });
 });
-function getMostActiveMonth(posts) {
-  if (!posts.length) return { month: 0, count: 0 };
-  const months = {};
-  posts.forEach(p => { const m = new Date(p.time).getMonth(); months[m] = (months[m] || 0) + 1; });
-  const best = Object.entries(months).sort((a, b) => b[1] - a[1])[0];
-  return { month: parseInt(best[0]) + 1, count: best[1] };
-}
 
 // ==================== 设置 ====================
 
