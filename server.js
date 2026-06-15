@@ -937,8 +937,11 @@ app.get('/api/square', (req, res) => {
 
 app.get('/api/achievements', (req, res) => {
   const ctx = auth(req, res); if (!ctx) return;
-  const posts = ctx.db.posts.filter(p => p.user === req.session.user);
-  const points = ctx.userData.points || 0;
+  const targetUser = req.query.user || req.session.user;
+  const targetData = ctx.db.users[targetUser];
+  if (!targetData) return res.json({ ok: false, msg: '用户不存在' });
+  const posts = ctx.db.posts.filter(p => p.user === targetUser);
+  const points = targetData.points || 0;
   const achievements = [
     { id: 'first_post', name: '初次发声', desc: '发表第一条说说', icon: '📝', unlocked: posts.length >= 1 },
     { id: 'ten_posts', name: '话痨', desc: '发表10条说说', icon: '💬', unlocked: posts.length >= 10 },
@@ -949,7 +952,7 @@ app.get('/api/achievements', (req, res) => {
     { id: 'points_500', name: '积分达人', desc: '积分达到500', icon: '💎', unlocked: points >= 500 },
     { id: 'commenter', name: '热心评论', desc: '评论数达到20', icon: '💭', unlocked: ctx.db.posts.filter(p => p.comments?.some(c => c.user === req.session.user)).length >= 20 },
   ];
-  res.json({ ok: true, achievements });
+  res.json({ ok: true, achievements, unlockedCount: achievements.filter(a=>a.unlocked).length, totalCount: achievements.length });
 });
 
 // ==================== 年度报告 ====================
