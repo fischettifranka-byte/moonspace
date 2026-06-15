@@ -5,7 +5,7 @@ async function renderProfile(){
   el.innerHTML=`<div class="profile-card"><div class="profile-av" onclick="document.getElementById('avInput').click()">${state.avatar?`<img src="${state.avatar}?t=${Date.now()}">`:'🌙'}<div class="level-badge">${state.level||1}</div><input type="file" id="avInput" accept="image/*" onchange="uploadAvatar(this)"></div><div class="profile-info"><div style="display:flex;align-items:center;gap:8px"><div class="profile-nick">${esc(state.nickname||state.user)}</div><button onclick="toggleTheme()" style="background:none;border:1px solid var(--border);border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);padding:0" id="themeIcon">🌙</button></div><div class="profile-bio" id="bioDisplay">${esc(state.bio||'这个人很懒什么都没写')} <span style="color:var(--text3);font-size:11px;cursor:pointer" onclick="showEditBio()">✏️</span></div><div class="edit-bio" id="editBioArea" style="display:none"><input id="bioInput" value="${esc(state.bio||'')}"><button onclick="saveBio()">保存</button></div></div></div><div class="profile-stats"><div><div class="num">${state.postCount||0}</div><div class="lbl">说说</div></div><div><div class="num">${state.totalLikes||0}</div><div class="lbl">获赞</div></div><div><div class="num">${state.points||0}</div><div class="lbl">积分</div></div><div><div class="num">${state.followersCount||0}</div><div class="lbl">粉丝</div></div></div>${fortuneHTML}<div class="checkin-card"><div style="font-size:14px;color:var(--text2);margin-bottom:8px">📅 每日签到</div><div class="streak" id="checkinStreak">${state.checkinStreak||0}</div><div class="streak-label">连续签到天数</div><button class="checkin-btn" id="checkinBtn" onclick="doCheckin()" ${state.checkedInToday?'disabled':''}>${state.checkedInToday?'✅ 今日已签到':'✨ 签到领积分'}</button></div><div class="menu-grid"><div class="menu-item" onclick="viewUser('${state.user}')"><span class="mi-icon">📄</span>我的说说</div><div class="menu-item" onclick="showMyMessages()"><span class="mi-icon">📩</span>信件</div><div class="menu-item" onclick="showConversations()"><span class="mi-icon">💬</span>私信</div><div class="menu-item" onclick="showPage('pageAchievements');loadAchievements()"><span class="mi-icon">🎯</span>成就<div style="font-size:10px;color:var(--gold);margin-top:2px">${state.achievementCount||0}个</div></div><div class="menu-item" onclick="showPage('pageReport');loadReport()"><span class="mi-icon">📊</span>年度报告</div><div class="menu-item" onclick="showPage('pageGallery');loadGallery('${state.user}')"><span class="mi-icon">📸</span>照片墙</div><div class="menu-item" onclick="showPage('pageCloud');loadCloud()"><span class="mi-icon">☁️</span>云盘</div><div class="menu-item" onclick="showLeaderboard()"><span class="mi-icon">🏆</span>排行榜</div>${state.hasPassword?'':`<div class="menu-item" onclick="showPage('pageSetPassword')"><span class="mi-icon">🔑</span>设密码</div>`}<div class="menu-item" onclick="showPage('pageSettings');loadSettings()"><span class="mi-icon">⚙️</span>设置</div></div>`;
 }
 function showEditBio(){document.getElementById('bioDisplay').style.display='none';document.getElementById('editBioArea').style.display='flex'}
-async function saveBio(){const b=document.getElementById('bioInput').value.trim();const d=await api("/api/profile",{method:"POST",body:JSON.stringify({bio:b})});if(d.ok){state.bio=b;document.getElementById('bioDisplay').innerHTML=esc(b||'这个人很懒什么都没写')+' <span style="color:var(--text3);font-size:11px;cursor:pointer" onclick="showEditBio()">✏️</span>';document.getElementById('bioDisplay').style.display='block';document.getElementById('editBioArea').style.display='none'}else toast(d.msg)}
+async function saveBio(){const b=document.getElementById('bioInput').value.trim();const d=await api("/api/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({bio:b})});if(d.ok){state.bio=b;document.getElementById('bioDisplay').innerHTML=esc(b||'这个人很懒什么都没写')+' <span style="color:var(--text3);font-size:11px;cursor:pointer" onclick="showEditBio()">✏️</span>';document.getElementById('bioDisplay').style.display='block';document.getElementById('editBioArea').style.display='none'}else toast(d.msg)}
 async function uploadAvatar(input){const fd=new FormData();fd.append('avatar',input.files[0]);const d=await fetch('/api/avatar',{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.json());if(d.ok){state.avatar=d.url;renderProfile();renderFeed();toast('头像已更新')}}
 async function doCheckin(){
   const d=await api("/api/checkin",{method:"POST"});
@@ -20,7 +20,7 @@ async function doCheckin(){
     if(d.newAchievements)d.newAchievements.forEach(a=>showAchievementPopup(a));
   }else toast(d.msg)
 }
-async function setPassword(){const p=document.getElementById('newPass').value,p2=document.getElementById('newPass2').value;if(!p||p.length<6)return toast('密码至少6位');if(p!==p2)return toast('两次密码不一致');const d=await api("/api/set-password",{method:"POST",body:JSON.stringify({password:p})});if(d.ok){toast('密码设置成功 🔑');state.hasPassword=true;showPage('pageProfile');renderProfile()}else toast(d.msg)}
+async function setPassword(){const p=document.getElementById('newPass').value,p2=document.getElementById('newPass2').value;if(!p||p.length<6)return toast('密码至少6位');if(p!==p2)return toast('两次密码不一致');const d=await api("/api/set-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:p})});if(d.ok){toast('密码设置成功 🔑');state.hasPassword=true;showPage('pageProfile');renderProfile()}else toast(d.msg)}
 
 // ===== 设置页面 =====
 let settingsEmailSent=false;
@@ -86,7 +86,7 @@ async function settingsSendCode(){
   const btn=document.getElementById('settingsSendCodeBtn');
   btn.disabled=true;let s=60;btn.textContent=s+'s';
   const timer=setInterval(()=>{s--;btn.textContent=s+'s';if(s<=0){clearInterval(timer);btn.disabled=false;btn.textContent='发送验证码'}},1000);
-  const d=await api("/api/settings/send-email-code",{method:"POST",body:JSON.stringify({email})});
+  const d=await api("/api/settings/send-email-code",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
   if(d.ok){settingsEmailSent=true;toast(d.msg||'验证码已发送');}
   else{toast(d.msg);clearInterval(timer);btn.disabled=false;btn.textContent='发送验证码'}
 }
@@ -94,7 +94,7 @@ async function settingsSendCode(){
 async function settingsVerifyEmail(){
   const code=document.getElementById('settingsEmailCode').value.trim();
   if(!code)return toast('请输入验证码');
-  const d=await api("/api/settings/verify-email",{method:"POST",body:JSON.stringify({code})});
+  const d=await api("/api/settings/verify-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code})});
   if(d.ok){toast('邮箱更换成功 ✅');state.email=d.newEmail;loadSettings()}
   else toast(d.msg)
 }
@@ -119,7 +119,7 @@ async function settingsChangePassword(hasPassword){
   // 未提供旧密码时必须提供邮箱验证码
   if(!oldP&&!code)return toast("请输入旧密码或邮箱验证码");
   const body={newPassword:newP,code:code||undefined,oldPassword:oldP||undefined};
-  const d=await api("/api/settings/change-password",{method:"POST",body:JSON.stringify(body)});
+  const d=await api("/api/settings/change-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   if(d.ok){toast("密码修改成功 🔑");loadSettings()}
   else toast(d.msg)
 }
@@ -129,7 +129,7 @@ async function settingsDeleteAccount(hasPassword){
   const password=hasPassword?prompt(msg):'';
   if(hasPassword&&!password)return;
   showConfirm("⚠️ 注销账号","所有数据将被删除且无法恢复！","⚠️",async()=>{
-  const d=await api("/api/settings/delete-account",{method:"POST",body:JSON.stringify({password:password||undefined})});
+  const d=await api("/api/settings/delete-account",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:password||undefined})});
   if(d.ok){toast('账号已注销');setTimeout(()=>location.reload(),1000)}
   else toast(d.msg)
   });
@@ -248,7 +248,7 @@ async function confirmShare(){
   const usePw=document.getElementById('sharePwToggle').checked;
   const pw=usePw?document.getElementById('sharePwInput').value.trim():'';
   if(usePw&&!pw)return toast('请输入密码或关闭密码开关');
-  const d=await api("/api/cloud/share/"+fileId,{method:"POST",body:JSON.stringify(pw?{password:pw}:{})});
+  const d=await api("/api/cloud/share/"+fileId,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(pw?{password:pw}:{})});
   if(d.ok){
     const url=location.origin+d.url;
     document.getElementById('shareStep1').style.display='none';
