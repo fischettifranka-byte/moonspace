@@ -34,7 +34,7 @@ async function loadReport(){
 async function loadGallery(userId){
   const d=await api('/api/gallery/'+userId);
   if(!d.ok)return;
-  document.getElementById('galleryContent').innerHTML=d.images.length?`<div style="padding:12px;font-size:13px;color:var(--text3)">共 ${d.total} 张照片</div><div class="gallery-grid">${d.images.map(i=>`<img src="${i.src}" onclick="showLightbox('${i.src}')">`).join('')}</div>`:'<div class="empty-msg">还没有照片 📸</div>';
+  document.getElementById('galleryContent').innerHTML=d.images.length?`<div style="padding:12px;font-size:13px;color:var(--text3)">共 ${d.images.length} 张照片</div><div class="gallery-grid">${d.images.map(i=>`<img src="${i.url}" onclick="showLightbox('${i.url}')" loading="lazy">`).join('')}</div>`:'<div class="empty-msg">还没有照片 📸</div>';
 }
 
 // ===== 排行榜 =====
