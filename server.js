@@ -847,10 +847,13 @@ app.get('/api/user/:uid', (req, res) => {
   const posts = db.posts.filter(p => p.user === req.params.uid);
   const isSelf = req.session.user === req.params.uid;
   const isFollowing = req.session.user ? (db.users[req.session.user]?.following || []).includes(req.params.uid) : false;
+  const followersCount = Object.values(db.users).filter(v => v.following?.includes(req.params.uid)).length;
+  const level = Math.floor((u.points || 0) / 100) + 1;
   res.json({
     ok: true, uid: req.params.uid, nickname: u.nickname, avatar: u.avatar, bio: u.bio,
     created: u.created, points: u.points || 0,
     postCount: posts.length, totalLikes: posts.reduce((a, p) => a + (p.likes?.length || 0), 0),
+    followersCount, level,
     isSelf, isFollowing
   });
 });
