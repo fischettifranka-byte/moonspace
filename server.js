@@ -791,10 +791,10 @@ app.post('/api/dm/send-file', (req, res) => {
   const file = userCloud.find(f => String(f.id) === String(fileId));
   if (!file) return res.json({ ok: false, msg: '文件不存在' });
   if (!Array.isArray(ctx.db.dms)) ctx.db.dms = [];
-  ctx.db.dms.push({ id: Date.now(), from: req.session.user, to, text: `[文件] ${file.name}`, time: Date.now(), file: { name: file.name, path: file.path, size: file.size, category: file.category } });
+  ctx.db.dms.push({ id: Date.now(), from: req.session.user, to, text: `[文件] ${file.name}`, time: Date.now(), file: { id: file.id, name: file.name, path: file.path, size: file.size, category: file.category } });
   addNotification(ctx.db, to, 'dm', `${ctx.userData.nickname} 给你发了一个文件`, to);
   saveDB(ctx.db);
-  res.json({ ok: true, message: { file: { name: file.name, path: file.path, size: file.size, category: file.category } } });
+  res.json({ ok: true, message: { file: { id: file.id, name: file.name, path: file.path, size: file.size, category: file.category } } });
 });
 
 // ==================== 故事 ====================
