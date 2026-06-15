@@ -428,6 +428,19 @@ app.get('/api/check', (req, res) => {
   if (!u) return res.json({ loggedIn: false });
   const myPosts = db.posts.filter(p => p.user === req.session.user);
   const mySecrets = db.secrets ? db.secrets.filter(s => s.user === req.session.user) : [];
+  // 粉丝数
+  const followersCount = Object.values(db.users).filter(v => v.following?.includes(req.session.user)).length;
+  // 等级（每100分升一级，最低1级）
+  const level = Math.floor((u.points || 0) / 100) + 1;
+  // 成就数
+  const achievementChecks = [
+    myPosts.length >= 1, myPosts.length >= 10, myPosts.length >= 50,
+    myPosts.reduce((a, p) => a + (p.likes?.length || 0), 0) >= 10,
+    myPosts.reduce((a, p) => a + (p.likes?.length || 0), 0) >= 100,
+    (u.points || 0) >= 50, (u.points || 0) >= 500,
+    db.posts.filter(p => p.comments?.some(c => c.user === req.session.user)).length >= 20
+  ];
+  const achievementCount = achievementChecks.filter(Boolean).length;
   // 签到状态
   if (!db.checkins) db.checkins = {};
   const today = new Date().toISOString().slice(0, 10);
@@ -446,7 +459,8 @@ app.get('/api/check', (req, res) => {
     postCount: myPosts.length, totalLikes: myPosts.reduce((a, p) => a + (p.likes?.length || 0), 0),
     secretCount: mySecrets.length, email: u.email || '',
     checkedInToday, checkinStreak,
-    hasPassword: !!u.password
+    hasPassword: !!u.password,
+    followersCount, level, achievementCount
   });
 });
 

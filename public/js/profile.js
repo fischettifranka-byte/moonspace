@@ -20,7 +20,7 @@ async function doCheckin(){
     if(d.newAchievements)d.newAchievements.forEach(a=>showAchievementPopup(a));
   }else toast(d.msg)
 }
-async function setPassword(){const p=document.getElementById('newPass').value,p2=document.getElementById('newPass2').value;if(!p||p.length<6)return toast('密码至少6位');if(p!==p2)return toast('两次密码不一致');const d=await api("/api/set-password",{method:"POST",body:JSON.stringify({password:p})});if(d.ok){toast('密码设置成功 🔑');state.hasPassword=true;showPage('pageProfile');initProfile()}else toast(d.msg)}
+async function setPassword(){const p=document.getElementById('newPass').value,p2=document.getElementById('newPass2').value;if(!p||p.length<6)return toast('密码至少6位');if(p!==p2)return toast('两次密码不一致');const d=await api("/api/set-password",{method:"POST",body:JSON.stringify({password:p})});if(d.ok){toast('密码设置成功 🔑');state.hasPassword=true;showPage('pageProfile');renderProfile()}else toast(d.msg)}
 
 // ===== 设置页面 =====
 let settingsEmailSent=false;
