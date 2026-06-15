@@ -1167,12 +1167,13 @@ app.post('/api/cloud/upload', cloudUpload.single('file'), (req, res) => {
   if (['.jpg','.jpeg','.png','.gif','.webp'].includes(ext)) category = 'image';
   else if (['.mp4','.mov','.avi','.webm'].includes(ext)) category = 'video';
   else if (['.mp3','.wav','.ogg','.flac','.m4a'].includes(ext)) category = 'audio';
-  ctx.db.cloud[req.session.user].push({
+  const fileObj = {
     id: Date.now(), name: Buffer.from(req.file.originalname, 'latin1').toString('utf8'), path: '/cloud/' + req.file.filename,
     size: req.file.size, time: Date.now(), mimetype: req.file.mimetype, category
-  });
+  };
+  ctx.db.cloud[req.session.user].push(fileObj);
   saveDB(ctx.db);
-  res.json({ ok: true });
+  res.json({ ok: true, file: fileObj });
 });
 
 app.get('/api/cloud/files', (req, res) => {

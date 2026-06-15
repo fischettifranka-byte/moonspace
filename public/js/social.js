@@ -69,7 +69,7 @@ function startDM(userId){openChat(userId)}
 async function openChat(userId){
   currentChatUser=userId;
   showPage('pageChat');
-  document.getElementById('chatView').innerHTML='<div class="chat-messages" id="chatMsgs"></div><div class="chat-input"><button onclick="showFilePicker()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:8px">📎</button><input id="chatInput" placeholder="输入消息..." onkeydown="if(event.key===\'Enter\')sendDM()"><button onclick="sendDM()">发送</button></div>';
+  document.getElementById('chatView').innerHTML='<div class="chat-messages" id="chatMsgs"></div><div class="chat-input"><input type="file" id="chatPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoSend(this)"><button onclick="document.getElementById(\'chatPhotoInput\').click()" style="background:none;border:none;font-size:20px;cursor:pointer;padding:8px">📷</button><input id="chatInput" placeholder="输入消息..." onkeydown="if(event.key===\'Enter\')sendDM()"><button onclick="sendDM()">发送</button></div>';
   loadChatMessages();
 }
 async function loadChatMessages(){
@@ -101,6 +101,25 @@ async function sendDM(){
     msgs.scrollTop=msgs.scrollHeight;
   }else toast(d.msg||'发送失败');
 }
+async function handlePhotoSend(input){
+  if(!input.files.length)return;
+  const file=input.files[0];
+  if(file.size>200*1024*1024)return toast('文件不能超过200MB');
+  toast('上传中...');
+  const fd=new FormData();fd.append('file',file);
+  const up=await fetch('/api/cloud/upload',{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.json());
+  input.value='';
+  if(!up.ok)return toast(up.msg||'上传失败');
+  const d=await api('/api/dm/send-file',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:currentChatUser,fileId:up.file.id})});
+  if(d.ok){
+    const msgs=document.getElementById('chatMsgs');
+    const f=up.file;
+    const sizeStr=f.size>1048576?(f.size/1048576).toFixed(1)+'MB':f.size>1024?(f.size/1024).toFixed(1)+'KB':f.size+'B';
+    msgs.innerHTML+=`<div class="chat-msg sent chat-file"><div style="display:flex;align-items:center;gap:10px;padding:4px 0"><img src="${f.path}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0"><div style="flex:1;min-width:0"><div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div><div style="font-size:11px;opacity:.5;margin-top:2px">${sizeStr}</div></div><a href="/api/cloud/download/${f.id}" download style="padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.08);font-size:12px;text-decoration:none;flex-shrink:0">⬇️</a></div><div class="msg-time">${fmtTime2(Date.now())}</div></div>`;
+    msgs.scrollTop=msgs.scrollHeight;
+  }else toast(d.msg||'发送失败');
+}
+
 async function showFilePicker(){
   const d=await api('/api/cloud/files?category=all');
   if(!d.ok||!d.files.length){toast('云盘没有文件，请先上传');return}
