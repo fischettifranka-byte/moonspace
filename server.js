@@ -441,18 +441,13 @@ app.get('/api/check', (req, res) => {
     db.posts.filter(p => p.comments?.some(c => c.user === req.session.user)).length >= 20
   ];
   const achievementCount = achievementChecks.filter(Boolean).length;
-  // 签到状态
+  // 签到状态（兼容旧格式：字符串 → 对象 { lastDate, streak }）
   if (!db.checkins) db.checkins = {};
   const today = new Date().toISOString().slice(0, 10);
-  const checkedInToday = db.checkins[req.session.user] === today;
-  let checkinStreak = 0;
-  if (checkedInToday) {
-    for (let i = 0; i < 30; i++) {
-      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
-      if (db.checkins[req.session.user] === d) checkinStreak++;
-      else break;
-    }
-  }
+  const raw = db.checkins[req.session.user];
+  const ci = typeof raw === 'object' ? raw : { lastDate: raw || '', streak: raw ? 1 : 0 };
+  const checkedInToday = ci.lastDate === today;
+  const checkinStreak = checkedInToday ? ci.streak : 0;
   res.json({
     loggedIn: true, user: req.session.user, nickname: u.nickname, phone: u.phone,
     avatar: u.avatar, bio: u.bio, created: u.created, points: u.points || 0,
@@ -612,18 +607,17 @@ app.post('/api/checkin', (req, res) => {
   const ctx = auth(req, res); if (!ctx) return;
   if (!ctx.db.checkins) ctx.db.checkins = {};
   const today = new Date().toISOString().slice(0, 10);
-  if (ctx.db.checkins[req.session.user] === today) return res.json({ ok: false, msg: '今天已经签到过了' });
-  ctx.db.checkins[req.session.user] = today;
+  // 兼容旧格式
+  const raw = ctx.db.checkins[req.session.user];
+  const ci = typeof raw === 'object' ? raw : { lastDate: raw || '', streak: raw ? 1 : 0 };
+  if (ci.lastDate === today) return res.json({ ok: false, msg: '今天已经签到过了' });
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const streak = ci.lastDate === yesterday ? ci.streak + 1 : 1;
+  ci.lastDate = today;
+  ci.streak = streak;
+  ctx.db.checkins[req.session.user] = ci;
   const bonus = Math.floor(Math.random() * 10) + 5;
   ctx.userData.points = (ctx.userData.points || 0) + bonus;
-  // 连续签到
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  let streak = 0;
-  for (let i = 0; i < 30; i++) {
-    const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
-    if (ctx.db.checkins[req.session.user] === d || (i === 0)) streak++;
-    else break;
-  }
   saveDB(ctx.db);
   res.json({ ok: true, points: ctx.userData.points, bonus, streak });
 });
@@ -940,18 +934,10 @@ app.get('/api/report/yearly', (req, res) => {
   const totalComments = myPosts.reduce((a, p) => a + (p.comments?.length || 0), 0);
   // 粉丝
   const followers = Object.values(ctx.db.users).filter(v => v.following?.includes(req.session.user)).length;
-  // 签到天数（当前数据模型只存最近一次，用 streak 近似）
-  let checkinDays = 0;
-  if (ctx.db.checkins) {
-    const today = new Date().toISOString().slice(0, 10);
-    if (ctx.db.checkins[req.session.user] === today) {
-      for (let i = 0; i < 365; i++) {
-        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
-        if (ctx.db.checkins[req.session.user] === d) checkinDays++;
-        else break;
-      }
-    }
-  }
+  // 签到天数
+  const rawCI = ctx.db.checkins?.[req.session.user];
+  const ci = typeof rawCI === 'object' ? rawCI : { lastDate: rawCI || '', streak: rawCI ? 1 : 0 };
+  const checkinDays = ci.streak || 0;
   // 最常心情
   const moodCounts = {};
   myPosts.forEach(p => { if (p.mood) { moodCounts[p.mood] = (moodCounts[p.mood] || 0) + 1; } });
