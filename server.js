@@ -1215,8 +1215,7 @@ app.get('/api/cloud/download/:id', (req, res) => {
   if (!file) return res.json({ ok: false, msg: '文件不存在' });
   const filePath = path.join(__dirname, 'public', 'cloud', path.basename(file.path));
   if (!fs.existsSync(filePath)) return res.json({ ok: false, msg: '文件已过期或被删除' });
-  res.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`);
-  res.sendFile(filePath);
+  if (!res.headersSent) res.download(filePath, file.name);
 });
 
 app.post('/api/cloud/share/:id', (req, res) => {
